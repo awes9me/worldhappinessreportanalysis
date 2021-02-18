@@ -1,0 +1,342 @@
+```{r}
+getwd()
+```
+
+
+
+```{r }
+# Setup
+library(GGally)
+library(leaps)
+library(MASS)
+dat = read.csv('2019b.csv', header = TRUE)
+head(dat)
+y = dat$Score
+x1 = dat$GDP.per.capita
+x2 = dat$Social.support
+x3 = dat$Healthy.life.expectancy
+x4 = dat$Freedom.to.make.life.choices
+x5 = dat$Generosity
+x6 = dat$Perceptions.of.corruption
+n = nrow(dat)
+
+```
+
+```{r}
+# Scatter-plot of the data
+ggpairs(dat, cardinality_threshold = NULL)
+
+```
+
+
+```{r}
+ggpairs(dat, cardinality_threshold = 156)
+```
+
+
+```{r}
+# Step-wise Regression
+# a)F-Test:
+mod0 = lm(y~1)
+add1(mod0, ~.+x1+x2+x3+x4+x5+x6, test='F')
+
+```
+
+
+```{r}
+mod1 = update(mod0, ~.+x1)
+add1(mod1,~.+x2+x3+x4+x5+x6, test='F')
+
+```
+
+
+```{r}
+mod2 = update(mod1,~.+x4)
+summary(mod2)
+add1(mod2,~.+x2+x3+x5+x6, test='F')
+
+```
+
+
+```{r}
+mod3 = update(mod2,~.+x2)
+summary(mod3)
+add1(mod3,~.+x3+x5+x6, test='F')
+
+```
+
+
+```{r}
+mod4 = update(mod3,~.+x3)
+summary(mod4)
+add1(mod4,~.+x5+x6, test='F')
+
+```
+
+
+```{r}
+mod5 = update(mod4,~.+x6)
+summary(mod5)
+add1(mod5,~.+x5, test='F')
+add1(mod5,~.+x1*x2+x1*x3+x1*x4+x1*x5+x1*x6+x2*x3+x2*x4+x2*x5+x2*x6+x3*x4+x3*x5+x3*x6+x4*x5+x4*x6+x5*x6, test='F')
+
+```
+
+
+```{r}
+mod6 = update(mod5,~.+x2*x3)
+summary(mod6)
+
+```
+
+
+```{r}
+mod7 = update(mod6,~.-x6)
+summary(mod7)
+add1(mod7,~.+x1*x2+x1*x3+x1*x4+x1*x5+x1*x6+x2*x4+x2*x5+x2*x6+x3*x4+x3*x5+x3*x6+x4*x5+x4*x6+x5*x6, test='F')
+
+```
+
+```{r}
+#summary(mod8)
+```
+
+
+```{r}
+# b)AIC:
+mod.i = lm(y~(x1+x2+x3+x4+x5+x6)^2)
+step(mod0,scope = list(lower=mod0,upper=mod.i))
+
+```
+
+
+```{r}
+# c)BIC:
+step(mod0,scope = list(lower=mod0,upper=mod.i), k=log(n))
+
+```
+
+
+```{r}
+# NOT RUN {
+AIC(mod0)
+AIC(mod1)
+AIC(mod2)
+AIC(mod3)
+AIC(mod4)
+AIC(mod5)
+AIC(mod6)
+AIC(mod7)
+#stopifnot(all.equal(AIC(mod0), AIC(logLik(mod0))))
+BIC(mod7)
+
+#lm2 <- update(lm1, . ~ . -Examination)
+#AIC(lm1, lm2)
+#BIC(lm1, lm2)
+# }
+```
+
+
+```{r}
+# Model after Step-wise regression:
+mod8 = lm(y~x1+x4+x2+x3+x2*x3)
+```
+
+
+```{r}
+mod = regsubsets(y~(x1+x2+x3+x4+x5+x6)^2,data=dat,nvmax=8)
+summary(mod)
+sm = summary(mod)
+sm$which
+```
+
+
+```{r}
+sm$adjr2
+
+```
+
+```{r}
+sm$adjr2[6]
+sm$adjr2[8]
+```
+
+
+```{r}
+rss = sm$rss
+mses = c(rss[1]/(n-2), rss[2]/(n-3), rss[3]/(n-4), rss[4]/(n-5), rss[5]/(n-6), rss[6]/(n-7), rss[7]/(n-8), rss[8]/(n-9))
+mses
+```
+
+
+```{r}
+sm$cp
+```
+
+```{r}
+sm$cp[6]
+```
+
+
+```{r}
+mod.sub = lm(y~x1+x4+x2+x3+x5+x6+x1*x5+x2*x3+x2*x6+x3*x6+x4*x5) 
+plot(mod.sub)
+```
+
+
+```{r}
+hist(resid(mod.sub))
+```
+
+
+```{r}
+# Model Assumptions
+summary(mod8)
+```
+
+
+```{r}
+plot(mod8)
+```
+
+
+```{r}
+#Model Assumptions
+summary(mod8)
+```
+
+
+```{r}
+hist(resid(mod8))
+```
+
+
+```{r}
+shapiro.test(resid(mod8))
+```
+
+
+```{r}
+dat2 = dat[-c(155),]
+y = dat2$Score
+x1 = dat2$GDP.per.capita
+x2 = dat2$Social.support
+x3 = dat2$Healthy.life.expectancy
+x4 = dat2$Freedom.to.make.life.choices 
+x5 = dat2$Generosity
+x6 = dat2$Perceptions.of.corruption 
+mod9 = lm(y~x1+x4+x2+x3+x2*x3) 
+summary(mod9)
+```
+
+
+```{r}
+plot(mod9)
+```
+
+
+```{r}
+hist(resid(mod9))
+```
+
+
+```{r}
+shapiro.test(resid(mod9))
+```
+
+
+```{r}
+boxc = boxcox(y~x1+x4+x2+x3+x2*x3, data = dat2, lambda = seq(-2, 2, 0.1))
+lambda = boxc$x[which.max(boxc$y)]
+lambda
+```
+
+
+```{r}
+mod10 = lm(y^lambda~x1+x4+x2+x3+x2*x3) 
+shapiro.test(resid(mod10))
+hist(resid(mod10))
+plot(mod10)
+```
+
+
+```{r}
+# Begin full vs reduced comparison
+modred <- lm(y~x1+x2+x3+x4+x2*x3) 
+modfull <- lm(y~(x1+x2+x3+x4+x5+x6)^2) 
+anova(modred,modfull)
+
+```
+
+
+```{r}
+modred2 <- mod10
+anova(modred2,modfull)
+```
+
+
+
+```{r}
+# Model after Step-wise regression:
+mod8 = lm(y~x1+x4+x2+x3+x2*x3)
+
+# Best Subsets Regression
+mod = regsubsets(cbind(x1,x2,x3,x4,x5,x6),y)
+sm = summary(mod)
+sm$which
+sm$adjr2
+rss = sm$rss
+mses = c(rss[1]/(n-2), rss[2]/(n-3), rss[3]/(n-4), rss[4]/(n-5), rss[5]/(n-6), rss[6]/(n-7)) 
+mses
+sm$cp
+
+# Model after Best Subsets Regression
+mod.sub = lm(y~x1+x4+x2+x3+x6)
+
+# Model Assumptions
+summary(mod8)
+plot(mod8)
+hist(resid(mod8))
+shapiro.test(resid(mod8))
+dat2 = dat[-c(155),]
+y = dat2$Score
+x1 = dat2$GDP.per.capita
+x2 = dat2$Social.support
+x3 = dat2$Healthy.life.expectancy
+x4 = dat2$Freedom.to.make.life.choices
+x5 = dat2$Generosity
+x6 = dat2$Perceptions.of.corruption
+mod9 = lm(y~x1+x4+x2+x3+x2*x3)
+summary(mod9)
+plot(mod9)
+shapiro.test(resid(mod9))
+boxc = boxcox(y~x1+x4+x2+x3+x2*x3, data = dat2, lambda = seq(-2, 2, 0.1))
+lambda = boxc$x[which.max(boxc$y)]
+mod10 = lm(y^lambda~x1+x4+x2+x3+x2*x3)
+shapiro.test(resid(mod10))
+plot(mod10)
+
+# Begin full vs reduced comparison
+modred <- lm(y~x1+x2+x3+x4+x2*x3)
+modfull <- lm(y~(x1+x2+x3+x4+x5+x6+I(x6^2))^2)
+anova(modred,modfull)
+# Conclude reduced is better
+```
+
+
+```{r}
+summary(mod9)
+```
+
+```{r}
+cooks.distance(mod7)
+rstudent(mod7)
+```
+
+
+```{r}
+cooks.distance(modred)
+rstudent(modred)
+```
+
+
